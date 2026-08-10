@@ -1,0 +1,90 @@
+import productModel from '../model/product.model.js';
+import AppError from '../utils/AppError.js';
+import cloudinary from '../configuration/cloudinary.js';
+import fs from 'fs';
+import { error } from 'console';
+import e from 'express';
+import userModel from '../model/userModel.js';
+export const createProduct = async (req, res, next) => {
+    try {
+        const { productName, price, details, status, image, category } = req.body;
+        const getUserId = await userModel.findById(req.params.userId);
+        if (!getUserId) {
+            throw new AppError("user not found", 404);
+        }
+        if (!req.file) {
+            throw new AppError("image is required", 400);
+        }
+        const result = await cloudinary.uploader.upload(req.file.path);
+        const product = await productModel.create({
+            productName,
+            price,
+            details,
+            status,
+            image: {
+                url: result.secure_url,
+                public_id: result.public_id
+            },
+            category,
+        });
+        await getUserId.products.push(product._id);
+        await getUserId.save();
+        //fs.unlinkSync(req.file.path);
+        return res.status(201).json({
+            message: "product created successfully",
+            data: product,
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+};
+export const getOneProduct = async (req, res, next) => {
+    try {
+        const { productId } = req.params;
+        const product = await productModel.findById(productId);
+        if (!product) {
+            throw new AppError("product not found", 404);
+        }
+        return res.status(200).json({
+            message: "product gotten",
+            data: product,
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+};
+export const getAllProducts = async (req, res, next) => {
+    try {
+        const product = await productModel.find();
+        return res.status(200).json({
+            message: "all products are gotten",
+            data: product,
+        });
+    }
+    catch (error) {
+        return res.status(500).json({
+            message: "error getiing all products",
+            error,
+        });
+    }
+};
+export const updatedProducts = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+        const updateProduct = await productModel.findByIdAndUpdate(id, status, { new: true });
+        if (!updateProduct) {
+            throw new AppError("product not found", 404);
+        }
+        return res.status(200).json({
+            message: "product updated successfull",
+            data: updateProduct
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+};
+//# sourceMappingURL=product.controller.js.map
