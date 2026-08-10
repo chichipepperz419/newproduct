@@ -5,6 +5,7 @@ import cloudinary from '../configuration/cloudinary.js';
 import fs from 'fs';
 import { error } from 'console';
 import e from 'express';
+import userModel from '../model/userModel.js';
 
 export const createProduct = async (
     req: Request,
@@ -13,6 +14,12 @@ export const createProduct = async (
 ) => {
     try {
         const { productName, price, details, status, image, category } = req.body;
+
+        const getUserId = await userModel.findById(req.params.userId);
+
+        if(!getUserId) {
+            throw new AppError("user not found", 404)
+        }
 
         if(!req.file){
             throw new AppError("image is required", 400);
@@ -30,6 +37,9 @@ export const createProduct = async (
             }, 
             category,
         });
+
+        await getUserId.products.push(product._id);
+        await getUserId.save();
 
         //fs.unlinkSync(req.file.path);
         return res.status(201).json({
@@ -71,7 +81,7 @@ export const getAllProducts = async (
     next: NextFunction
 )=> {
     try { 
-        const product = await productModel.find
+        const product = await productModel.find()
         return res.status(200).json({
             message:"all products are gotten",
             data: product,
@@ -92,9 +102,10 @@ export const updatedProducts = async (
 )=> {
     try { 
         const { id } = req.params
+        const { status } = req.body
         const updateProduct =  await productModel.findByIdAndUpdate(
             id,
-            req.body,
+            status,
             { new: true }
         );
         if(!updateProduct){

@@ -4,7 +4,7 @@ interface products {
   productName : string;
   price : number;
   details : string;
-  status : string;
+  status : boolean;
   image : {
     url: string;
     public_id: string;
@@ -28,12 +28,10 @@ const productSchema : Schema<Iproducts> = new Schema({
     required: true,
   },
   status: {
-    type: String,
+    type: Boolean,
     required: true,
   },
   image: {
-    type : String,
-    required : true,
     url: String,
     public_id : String
   },

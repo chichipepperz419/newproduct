@@ -1,4 +1,4 @@
-import { register, login, getUser , updateUser , deleteUser, profile, signup, signIn, viewAllStudents} from "../controller/userController.js";
+import { register, login, getUser , updateUser , deleteUser, profile, signup, signIn, viewAllStudents, getOneUser} from "../controller/userController.js";
 import { Router } from "express";
 import { createUserSchema, loginUserSchema } from "../validator/user.validator.js";
 import { validateUser } from "../middlewares/validate.js";
@@ -18,6 +18,8 @@ userRouter.delete("/:id", authenticate, authorize("lecturer"), deleteUser);
 userRouter.post("/signup", signup);
 userRouter.post("/signin", validateUser(loginUserSchema), signIn);
 userRouter.get("/students", authenticate, viewAllStudents);
+userRouter.get("/:userId", getOneUser)
+
 
 export default userRouter;
 

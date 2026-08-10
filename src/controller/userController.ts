@@ -3,6 +3,9 @@ import type { Request, Response, NextFunction } from "express";
 import AppError from "../utils/AppError.js";
 import bcrypt from "bcrypt";
 import { generateToken } from "../utils/token.js";
+import type { ResolveDiscriminatorHydratedPathType } from "mongoose";
+import { sendWelcomeEmail } from "../services/email.service.js";
+import crypto from "crypto"
 
 
 
@@ -85,6 +88,9 @@ const students = await userModel.find({ role: "student" });
 }   
 
 
+const verificationToken = crypto.randomBytes(32).toString("hex");
+
+const verificationExpired = new Date(Date.now() + 1000 * 60 * 5);
 
 //create user
 export const register = async (
@@ -96,8 +102,12 @@ export const register = async (
     const { name, email, password, role } = req.body;
     const findExistingUser = await userModel.findOne({ email });
     if (findExistingUser) {
-      throw new AppError("user already exists... proceed to sign in", 409);
+      throw new AppError("user already exists....proceed to sign in", 409);
     }
+
+const verificationToken = crypto.randomBytes(32).toString("hex");
+
+const verificationExpired = new Date(Date.now() + 1000 * 60 * 5);
     const genSalt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, genSalt);
 
@@ -106,9 +116,20 @@ export const register = async (
       email,
       password: hashedPassword,
       role: role || "user",
+      verificationToken :  verificationToken,
+      verificationExpired :verificationExpired,
     });
+
+ 
+
+    await sendWelcomeEmail(email, name , `${process.env.BASE_URL}/verify-email?token=${verificationToken}`).then(()=>{
+      console.log("Email sent successfully");
+    }).catch((error)=>{
+      console.log("Error sending email", error);
+    });
+
     return res.status(201).json({
-      message: "user created successfully",
+      message: "User created successfully",
       data: newUser,
       id: newUser?._id,
     });
@@ -116,6 +137,7 @@ export const register = async (
     next(error);
   }
 };
+
 
 export const login = async (
   req: Request,
@@ -182,13 +204,25 @@ export const logout = async (
   }
 }
 
-//getuser
+//get user : filtering
 export const getUser = async (req: Request, res: Response) => {
   try {
-    const finduser = await userModel.find();
+    const role = req.query.role as string;
+    const name = req.query.name as string;
+    const filter: any = {};
+    if (req.query.role) {
+      filter.role = role;
+    }
+
+    if(req.query.name) {
+      filter.name = name
+    }
+
+    const user = await userModel.find(filter);
+
     return res.status(200).json({
       message: "users",
-      data: finduser,
+      data: user,
     });
   } catch (error) {
     return res.status(500).json({
@@ -197,12 +231,32 @@ export const getUser = async (req: Request, res: Response) => {
     });
   }
 };
-
+// //get user : searching
+// export const getUser = async (req: Request, res: Response) => {
+//   try {
+//     const search = req.query.search as string;
+//     const user = await userModel.find({
+//       name: { $regex: search, $options: "i" },
+//     });
+//     return res.status(200).json({
+//       message: "users",
+//       data: user,
+//     });
+//   } catch (error) {
+//     return res.status(500).json({
+//       message: "An error occured",
+//       error,
+//     });
+//   }
+// };
 //get oneuser
 export const getOneUser = async (req: Request, res: Response) => {
   try {
     const { userId } = req.params;
-    const user = await userModel.findById(userId);
+    const user = await userModel.findById(userId).populate({
+      path : "products",
+      //populate is a mongoose method that fetches that replaces an objectid ref with the actual document it points to
+    });
     return res.status(200).json({
       message: "user gotten",
       data: user,
@@ -252,3 +306,22 @@ export const deleteUser = async (req: Request, res: Response) => {
     });
   }
 };
+
+
+// export const searchUser = async (req: Request, res: Response) => {
+//   try {
+//   const search = req.query.search as string;
+//     const user = await userModel.find({
+//       name: { $regex: search, $options: "i" },
+//     });
+//     return res.status(200).json({
+//       message: "user gotten",
+//       data: user,
+//     });
+//   } catch (error) {
+//     return res.status(500).json({
+//       message: "Error",
+//       error,
+//     });
+//   }
+// };

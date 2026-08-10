@@ -3,9 +3,9 @@ import { createProduct, getAllProducts, getOneProduct, updatedProducts } from ".
 import upload from "../configuration/multer.js"
 
 const ProductRouter = Router();
-ProductRouter.post("/", upload.single("image"), createProduct)
+ProductRouter.post("/:userId", upload.single("image"), createProduct)
 ProductRouter.get("/", getAllProducts);
-ProductRouter.get("/:id", getOneProduct);
-ProductRouter.patch("/:id", upload.single("image"), updatedProducts);
+ProductRouter.get("/:productId", getOneProduct);
+ProductRouter.patch("/update-product/:id", updatedProducts);
 
 export default ProductRouter

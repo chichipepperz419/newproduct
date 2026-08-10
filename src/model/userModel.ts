@@ -7,6 +7,9 @@ interface user {
   role: string;
   enum: any[];
   default: any;
+  products: {}[];
+   verificationToken : string;
+  verificationExpired : Date 
 }
 interface iuser extends user, mongoose.Document {}
 
@@ -31,6 +34,15 @@ const userSchema = new mongoose.Schema<iuser>(
     default: {
       type: String,
     },
+    
+    products: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref:"product",
+      },
+    ],
+
+
   },
   { timestamps: true },
 );
